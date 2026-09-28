@@ -39,16 +39,361 @@ nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(520px,
 </div>
 <div class="modal" id="modal"><div class="sheet"><button class="close" onclick="closeModal()">×</button><div id="detail"></div></div></div>
 <script>
-const movies=[
-{id:1,t:"The Last Horizon",g:"Sci-Fi",r:8.7,img:"https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=500&q=80",d:"A lone explorer discovers a signal beyond the edge of known space and must decide whether to answer it."},
-{id:2,t:"Midnight City",g:"Thriller",r:8.2,img:"https://images.unsplash.com/photo-1519608487953-e999c86e7455?auto=format&fit=crop&w=500&q=80",d:"One night. One city. One secret that changes everything."},
-{id:3,t:"Wild Roads",g:"Adventure",r:8.4,img:"https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=500&q=80",d:"Two strangers take the long way home across breathtaking landscapes."},
-{id:4,t:"After the Rain",g:"Drama",r:7.9,img:"https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?auto=format&fit=crop&w=500&q=80",d:"A musician returns to her hometown and confronts the choices she left behind."},
-{id:5,t:"Neon Hearts",g:"Romance",r:8.1,img:"https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?auto=format&fit=crop&w=500&q=80",d:"A chance encounter in a neon-lit city becomes an unexpected love story."},
-{id:6,t:"The Deep",g:"Horror",r:7.8,img:"https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=500&q=80",d:"A research team finds something beneath the ocean that should have stayed buried."},
-{id:7,t:"Laugh Track",g:"Comedy",r:7.6,img:"https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=500&q=80",d:"A failed comedian gets one impossible chance to turn his life around."},
-{id:8,t:"Empire of Dust",g:"Action",r:8.5,img:"https://images.unsplash.com/photo-1533929736458-ca588d08c8be?auto=format&fit=crop&w=500&q=80",d:"A rebel crew races across a collapsing empire to stop a devastating weapon."}
-];
+const API = "https://moviehub-api.imessad-lyndadcot.workers.dev";
+
+let movies = [];
+let watch = JSON.parse(localStorage.getItem("moviehub-watch") || "[]");
+let current = "home";
+
+const $ = s => document.querySelector(s);
+
+function normalizeMovie(m) {
+  return {
+    id: m.id,
+    t: m.title || m.original_title || "Untitled",
+    g: genreName(m.genre_ids?.[0]),
+    r: Number(m.vote_average || 0).toFixed(1),
+    img: m.poster_path
+      ? `https://image.tmdb.org/t/p/w500${m.poster_path}`
+      : "https://via.placeholder.com/500x750?text=No+Poster",
+    backdrop: m.backdrop_path
+      ? `https://image.tmdb.org/t/p/w1280${m.backdrop_path}`
+      : "",
+    d: m.overview || "No description available.",
+    release: m.release_date || ""
+  };
+}
+
+function genreName(id) {
+  const map = {
+    28:"Action",
+    12:"Adventure",
+    16:"Animation",
+    35:"Comedy",
+    80:"Crime",
+    99:"Documentary",
+    18:"Drama",
+    10751:"Family",
+    14:"Fantasy",
+    36:"History",
+    27:"Horror",
+    10402:"Music",
+    9648:"Mystery",
+    10749:"Romance",
+    878:"Sci-Fi",
+    10770:"TV Movie",
+    53:"Thriller",
+    10752:"War",
+    37:"Western"
+  };
+
+  return map[id] || "Movie";
+}
+
+function card(m) {
+  return `
+    <div class="card" onclick="openMovie(${m.id})">
+      <img class="poster" src="${m.img}" loading="lazy">
+      <div class="title">${m.t}</div>
+      <div class="rating">★ ${m.r}</div>
+    </div>
+  `;
+}
+
+async function loadMovies() {
+  try {
+    $("#content").innerHTML = `
+      <div class="empty">Loading movies...</div>
+    `;
+
+    const response = await fetch(`${API}/trending`);
+
+    if (!response.ok) {
+      throw new Error("API request failed");
+    }
+
+    const data = await response.json();
+
+    movies = (data.results || [])
+      .filter(m => m.media_type === "movie" || !m.media_type)
+      .map(normalizeMovie);
+
+    if (!movies.length) {
+      throw new Error("No movies returned");
+    }
+
+    renderHome();
+
+  } catch (error) {
+    console.error(error);
+
+    $("#content").innerHTML = `
+      <div class="empty">
+        <h3>Unable to load movies</h3>
+        <p>Please try again later.</p>
+      </div>
+    `;
+  }
+}
+
+function renderHome() {
+  const trending = movies.slice(0, 10);
+  const popular = [...movies]
+    .sort((a, b) => Number(b.r) - Number(a.r))
+    .slice(0, 10);
+
+  const featured = movies[0];
+
+  $("#content").innerHTML = `
+    <div class="hero"
+      style="
+        background-image:
+        linear-gradient(180deg,transparent 25%,rgba(0,0,0,.9) 100%),
+        url('${featured.backdrop || featured.img}');
+      ">
+      <div>
+        <div class="meta">FEATURED • ${featured.release?.slice(0,4) || "2026"}</div>
+
+        <h1>${featured.t}</h1>
+
+        <div class="meta">
+          ${featured.g} · ★ ${featured.r}
+        </div>
+
+        <p class="desc">${featured.d}</p>
+
+        <div class="actions">
+          <button class="btn primary"
+            onclick="openMovie(${featured.id})">
+            ▶ View movie
+          </button>
+
+          <button class="btn secondary"
+            onclick="toggleWatch(${featured.id})">
+            ♡ My list
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <section>
+      <div class="section-head">
+        <h2>Trending now</h2>
+        <button class="see" onclick="page('search')">
+          See all
+        </button>
+      </div>
+
+      <div class="row">
+        ${trending.map(card).join("")}
+      </div>
+    </section>
+
+    <section>
+      <div class="section-head">
+        <h2>Popular</h2>
+      </div>
+
+      <div class="row">
+        ${popular.map(card).join("")}
+      </div>
+    </section>
+
+    <section>
+      <div class="section-head">
+        <h2>Browse genres</h2>
+      </div>
+
+      <div class="chips">
+        ${genres().map(g =>
+          `<button class="chip" onclick="genre('${g}')">${g}</button>`
+        ).join("")}
+      </div>
+    </section>
+  `;
+}
+
+function genres() {
+  return [...new Set(movies.map(m => m.g))];
+}
+
+function renderSearch() {
+  $("#content").innerHTML = `
+    <h2 style="margin-top:20px">Find a movie</h2>
+
+    <div class="searchbox">
+      <span>⌕</span>
+      <input
+        id="q"
+        placeholder="Search movies..."
+        oninput="filterSearch(this.value)"
+      >
+    </div>
+
+    <div id="results" class="grid">
+      ${movies.map(card).join("")}
+    </div>
+  `;
+}
+
+function filterSearch(q) {
+  const a = movies.filter(m =>
+    (m.t + " " + m.g)
+      .toLowerCase()
+      .includes(q.toLowerCase())
+  );
+
+  $("#results").innerHTML = a.length
+    ? a.map(card).join("")
+    : `<div class="empty" style="grid-column:1/-1">
+         No movies found.
+       </div>`;
+}
+
+function renderGenres() {
+  const gs = genres();
+
+  $("#content").innerHTML = `
+    <h2 style="margin-top:20px">Genres</h2>
+
+    <div class="chips" style="flex-wrap:wrap">
+      ${gs.map(g =>
+        `<button class="chip" onclick="genre('${g}')">${g}</button>`
+      ).join("")}
+    </div>
+
+    <div
+      id="genreResults"
+      class="grid"
+      style="margin-top:22px">
+      ${movies.map(card).join("")}
+    </div>
+  `;
+}
+
+function genre(g) {
+  page("genres");
+
+  setTimeout(() => {
+    $("#genreResults").innerHTML =
+      movies
+        .filter(m => m.g === g)
+        .map(card)
+        .join("");
+  }, 0);
+}
+
+function renderWatch() {
+  const a = movies.filter(m => watch.includes(m.id));
+
+  $("#content").innerHTML = `
+    <h2 style="margin-top:20px">My Watchlist</h2>
+
+    ${
+      a.length
+      ? `<div class="grid">${a.map(card).join("")}</div>`
+      : `<div class="empty">
+           Your watchlist is empty.<br>
+           Add movies you want to watch later.
+         </div>`
+    }
+  `;
+}
+
+function page(p) {
+  current = p;
+
+  document
+    .querySelectorAll(".navbtn")
+    .forEach(x =>
+      x.classList.toggle("active", x.dataset.page === p)
+    );
+
+  ({
+    home: renderHome,
+    search: renderSearch,
+    genres: renderGenres,
+    watchlist: renderWatch
+  }[p])();
+}
+
+function openMovie(id) {
+  const m = movies.find(x => x.id === id);
+
+  if (!m) return;
+
+  const inW = watch.includes(id);
+
+  $("#detail").innerHTML = `
+    <div class="detail">
+
+      <img
+        class="detailposter"
+        src="${m.img}"
+      >
+
+      <h2>${m.t}</h2>
+
+      <div class="meta">
+        ${m.g} · ${m.release || "2026"} · ★ ${m.r}
+      </div>
+
+      <p>${m.d}</p>
+
+      <button
+        class="btn primary"
+        onclick="toggleWatch(${m.id});openMovie(${m.id})">
+        ${inW ? "✓ In My List" : "＋ Add to My List"}
+      </button>
+
+      <button
+        class="btn secondary"
+        style="margin-left:7px"
+        onclick="alert('Trailer feature coming next.')">
+        ▶ Trailer
+      </button>
+
+      <div class="clear"></div>
+
+      <h3>About this movie</h3>
+
+      <p>
+        Discover cast, release information, trailers
+        and where to watch in MovieHub.
+      </p>
+
+    </div>
+  `;
+
+  $("#modal").classList.add("open");
+}
+
+function closeModal() {
+  $("#modal").classList.remove("open");
+}
+
+function toggleWatch(id) {
+  watch = watch.includes(id)
+    ? watch.filter(x => x !== id)
+    : [...watch, id];
+
+  localStorage.setItem(
+    "moviehub-watch",
+    JSON.stringify(watch)
+  );
+
+  if (current === "watchlist") {
+    renderWatch();
+  }
+}
+
+document
+  .querySelectorAll(".navbtn")
+  .forEach(b =>
+    b.onclick = () => page(b.dataset.page)
+  );
+
+loadMovies();
 let watch=JSON.parse(localStorage.getItem("moviehub-watch")||"[]");
 let current="home";
 const $=s=>document.querySelector(s);
