@@ -394,26 +394,6 @@ document
   );
 
 loadMovies();
-let watch=JSON.parse(localStorage.getItem("moviehub-watch")||"[]");
-let current="home";
-const $=s=>document.querySelector(s);
-function card(m){return `<div class="card" onclick="openMovie(${m.id})"><img class="poster" src="${m.img}" loading="lazy"><div class="title">${m.t}</div><div class="rating">★ ${m.r}</div></div>`}
-function renderHome(){let trending=movies.slice(0,5), popular=[...movies].sort((a,b)=>b.r-a.r);$("#content").innerHTML=`
-<div class="hero"><div><div class="meta">FEATURED • 2026</div><h1>${movies[0].t}</h1><div class="meta">Sci-Fi · 2h 08m · ★ ${movies[0].r}</div><p class="desc">${movies[0].d}</p><div class="actions"><button class="btn primary" onclick="openMovie(1)">▶ Watch trailer</button><button class="btn secondary" onclick="toggleWatch(1)">♡ My list</button></div></div></div>
-<section><div class="section-head"><h2>Trending now</h2><button class="see" onclick="page('search')">See all</button></div><div class="row">${trending.map(card).join("")}</div></section>
-<section><div class="section-head"><h2>Popular</h2></div><div class="row">${popular.map(card).join("")}</div></section>
-<section><div class="section-head"><h2>Browse genres</h2></div><div class="chips">${genres().map(g=>`<button class="chip" onclick="genre('${g}')">${g}</button>`).join("")}</div></section>`}
-function genres(){return [...new Set(movies.map(m=>m.g))]}
-function renderSearch(){let q="";$("#content").innerHTML=`<h2 style="margin-top:20px">Find a movie</h2><div class="searchbox"><span>⌕</span><input id="q" placeholder="Search movies..." oninput="filterSearch(this.value)"></div><div id="results" class="grid">${movies.map(card).join("")}</div>`}
-function filterSearch(q){let a=movies.filter(m=>(m.t+" "+m.g).toLowerCase().includes(q.toLowerCase()));$("#results").innerHTML=a.length?a.map(card).join(""):`<div class="empty" style="grid-column:1/-1">No movies found.</div>`}
-function renderGenres(){let gs=genres();$("#content").innerHTML=`<h2 style="margin-top:20px">Genres</h2><div class="chips" style="flex-wrap:wrap">${gs.map(g=>`<button class="chip" onclick="genre('${g}')">${g}</button>`).join("")}</div><div id="genreResults" class="grid" style="margin-top:22px">${movies.map(card).join("")}</div>`}
-function genre(g){page("genres");setTimeout(()=>{$("#genreResults").innerHTML=movies.filter(m=>m.g===g).map(card).join("")},0)}
-function renderWatch(){let a=movies.filter(m=>watch.includes(m.id));$("#content").innerHTML=`<h2 style="margin-top:20px">My Watchlist</h2>${a.length?`<div class="grid">${a.map(card).join("")}</div>`:`<div class="empty">Your watchlist is empty.<br>Add movies you want to watch later.</div>`}`}
-function page(p){current=p;document.querySelectorAll(".navbtn").forEach(x=>x.classList.toggle("active",x.dataset.page===p));({home:renderHome,search:renderSearch,genres:renderGenres,watchlist:renderWatch}[p])()}
-function openMovie(id){let m=movies.find(x=>x.id===id), inW=watch.includes(id);$("#detail").innerHTML=`<div class="detail"><img class="detailposter" src="${m.img}"><h2>${m.t}</h2><div class="meta">${m.g} · 2026 · ★ ${m.r}</div><p>${m.d}</p><button class="btn primary" onclick="toggleWatch(${m.id});openMovie(${m.id})">${inW?"✓ In My List":"＋ Add to My List"}</button><button class="btn secondary" style="margin-left:7px" onclick="alert('Trailer demo — connect a video provider/API here.')">▶ Trailer</button><div class="clear"></div><h3>About this movie</h3><p>Discover cast, release information, trailers and where to watch in the full version of MovieHub.</p></div>`;$("#modal").classList.add("open")}
-function closeModal(){$("#modal").classList.remove("open")}
-function toggleWatch(id){watch=watch.includes(id)?watch.filter(x=>x!==id):[...watch,id];localStorage.setItem("moviehub-watch",JSON.stringify(watch));if(current==="watchlist")renderWatch()}
-document.querySelectorAll(".navbtn").forEach(b=>b.onclick=()=>page(b.dataset.page));renderHome();
 </script>
 </body>
 </html>
