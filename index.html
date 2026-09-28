@@ -397,3 +397,124 @@ loadMovies();
 </script>
 </body>
 </html>
+      movies
+        .filter(m => m.g === g)
+        .map(card)
+        .join("");
+  }, 0);
+}
+
+function renderWatch() {
+  const a = movies.filter(m => watch.includes(m.id));
+
+  $("#content").innerHTML = `
+    <h2 style="margin-top:20px">My Watchlist</h2>
+
+    ${
+      a.length
+      ? `<div class="grid">${a.map(card).join("")}</div>`
+      : `<div class="empty">
+           Your watchlist is empty.<br>
+           Add movies you want to watch later.
+         </div>`
+    }
+  `;
+}
+
+function page(p) {
+  current = p;
+
+  document
+    .querySelectorAll(".navbtn")
+    .forEach(x =>
+      x.classList.toggle("active", x.dataset.page === p)
+    );
+
+  ({
+    home: renderHome,
+    search: renderSearch,
+    genres: renderGenres,
+    watchlist: renderWatch
+  }[p])();
+}
+
+function openMovie(id) {
+  const m = movies.find(x => x.id === id);
+
+  if (!m) return;
+
+  const inW = watch.includes(id);
+
+  $("#detail").innerHTML = `
+    <div class="detail">
+
+      <img
+        class="detailposter"
+        src="${m.img}"
+      >
+
+      <h2>${m.t}</h2>
+
+      <div class="meta">
+        ${m.g} · ${m.release || "2026"} · ★ ${m.r}
+      </div>
+
+      <p>${m.d}</p>
+
+      <button
+        class="btn primary"
+        onclick="toggleWatch(${m.id});openMovie(${m.id})">
+        ${inW ? "✓ In My List" : "＋ Add to My List"}
+      </button>
+
+      <button
+        class="btn secondary"
+        style="margin-left:7px"
+        onclick="alert('Trailer feature coming next.')">
+        ▶ Trailer
+      </button>
+
+      <div class="clear"></div>
+
+      <h3>About this movie</h3>
+
+      <p>
+        Discover cast, release information, trailers
+        and where to watch in MovieHub.
+      </p>
+
+    </div>
+  `;
+
+  $("#modal").classList.add("open");
+}
+
+function closeModal() {
+  $("#modal").classList.remove("open");
+}
+
+function toggleWatch(id) {
+  watch = watch.includes(id)
+    ? watch.filter(x => x !== id)
+    : [...watch, id];
+
+  localStorage.setItem(
+    "moviehub-watch",
+    JSON.stringify(watch)
+  );
+
+  if (current === "watchlist") {
+    renderWatch();
+  }
+}
+
+document
+  .querySelectorAll(".navbtn")
+  .forEach(b =>
+    b.onclick = () => page(b.dataset.page)
+  );
+
+loadMovies();
+</script>
+</body>
+</html>
