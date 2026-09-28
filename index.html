@@ -122,87 +122,119 @@ let current = "home";
 const $ = s => document.querySelector(s);
 
 
+// ===============================
+// GENRES
+// ===============================
+
+const GENRES = {
+  28: "Action",
+  12: "Adventure",
+  16: "Animation",
+  35: "Comedy",
+  80: "Crime",
+  99: "Documentary",
+  18: "Drama",
+  10751: "Family",
+  14: "Fantasy",
+  36: "History",
+  27: "Horror",
+  10402: "Music",
+  9648: "Mystery",
+  10749: "Romance",
+  878: "Science Fiction",
+  53: "Thriller",
+  10752: "War",
+  37: "Western"
+};
+
+function genreName(id) {
+  return GENRES[id] || "Movie";
+}
+
+
+// ===============================
+// NORMALIZE TMDB MOVIE
+// ===============================
+
 function normalizeMovie(m) {
 
   return {
     id: m.id,
 
-    t: m.title ||
-       m.original_title ||
-       "Untitled",
+    t:
+      m.title ||
+      m.original_title ||
+      "Untitled",
 
-    g: genreName(
-      m.genre_ids?.[0]
-    ),
+    g:
+      genreName(
+        m.genre_ids?.[0]
+      ),
 
-    r: Number(
-      m.vote_average || 0
-    ).toFixed(1),
+    r:
+      Number(
+        m.vote_average || 0
+      ).toFixed(1),
 
-    img: m.poster_path
-      ? `https://image.tmdb.org/t/p/w500${m.poster_path}`
-      : "https://via.placeholder.com/500x750?text=No+Poster",
+    img:
+      m.poster_path
 
-    backdrop: m.backdrop_path
-      ? `https://image.tmdb.org/t/p/w1280${m.backdrop_path}`
-      : "",
+        ? `https://image.tmdb.org/t/p/w500${m.poster_path}`
 
-    d: m.overview ||
-       "No description available.",
+        : "https://via.placeholder.com/500x750?text=No+Poster",
 
-    release: m.release_date || ""
+    backdrop:
+      m.backdrop_path
+
+        ? `https://image.tmdb.org/t/p/w1280${m.backdrop_path}`
+
+        : "",
+
+    d:
+      m.overview ||
+      "No description available.",
+
+    release:
+      m.release_date || ""
   };
 }
 
 
-function genreName(id) {
-
-  const map = {
-
-    28:"Action",
-    12:"Adventure",
-    16:"Animation",
-    35:"Comedy",
-    80:"Crime",
-    99:"Documentary",
-    18:"Drama",
-    10751:"Family",
-    14:"Fantasy",
-    36:"History",
-    27:"Horror",
-    10402:"Music",
-    9648:"Mystery",
-    10749:"Romance",
-    878:"Sci-Fi",
-    10770:"TV Movie",
-    53:"Thriller",
-    10752:"War",
-    37:"Western"
-
-  };
-
-  return map[id] || "Movie";
-}
-
+// ===============================
+// MOVIE CARD
+// ===============================
 
 function card(m) {
 
   return `
-    <div class="card" onclick="openMovie(${m.id})">
+    <div
+      class="card"
+      onclick="openMovie(${m.id})"
+    >
 
       <img
-        class="poster"
         src="${m.img}"
-        loading="lazy"
         alt="${m.t}"
       >
 
-      <div class="title">
-        ${m.t}
-      </div>
+      <div class="cardbody">
 
-      <div class="rating">
-        ★ ${m.r}
+        <h3>
+          ${m.t}
+        </h3>
+
+        <div class="meta">
+
+          <span>
+            ⭐ ${m.r}
+          </span>
+
+          <span>
+            ${m.g}
+          </span>
+
+        </div>
+
       </div>
 
     </div>
@@ -210,45 +242,123 @@ function card(m) {
 }
 
 
+// ===============================
+// GET MOVIES FROM WORKER
+// ===============================
+
+async function getMovies(endpoint) {
+
+  const response =
+    await fetch(
+      `${API}/${endpoint}`
+    );
+
+  if (!response.ok) {
+
+    throw new Error(
+      `${endpoint} failed: ${response.status}`
+    );
+
+  }
+
+  const data =
+    await response.json();
+
+  return (
+    data.results || []
+  )
+    .filter(
+      m =>
+        !m.media_type ||
+        m.media_type === "movie"
+    )
+    .map(normalizeMovie);
+}
+
+
+// ===============================
+// LOAD ALL MOVIES
+// ===============================
+
 async function loadMovies() {
+
+  $("#content").innerHTML = `
+
+    <div class="empty">
+
+      <h3>
+        Loading movies...
+      </h3>
+
+    </div>
+
+  `;
 
   try {
 
-    $("#content").innerHTML = `
-      <div class="empty">
-        Loading movies...
-      </div>
-    `;
+    const [
+      trending,
+      popular,
+      topRated,
+      nowPlaying,
+      upcoming
+    ] = await Promise.all([
 
-    const response =
-      await fetch(`${API}/trending`);
+      getMovies("trending"),
 
-    if (!response.ok) {
-      throw new Error(
-        "API request failed: " +
-        response.status
-      );
-    }
+      getMovies("popular"),
 
-    const data =
-      await response.json();
+      getMovies("top-rated"),
 
+      getMovies("now-playing"),
+
+      getMovies("upcoming")
+
+    ]);
+
+
+    // Combine all movies
+    movies = [
+
+      ...trending,
+
+      ...popular,
+
+      ...topRated,
+
+      ...nowPlaying,
+
+      ...upcoming
+
+    ];
+
+
+    // Remove duplicates
     movies =
-      (data.results || [])
-      .filter(
-        m =>
-          m.media_type === "movie" ||
-          !m.media_type
-      )
-      .map(normalizeMovie);
-
-    if (!movies.length) {
-      throw new Error(
-        "No movies returned"
+      movies.filter(
+        (movie, index, self) =>
+          index ===
+          self.findIndex(
+            x =>
+              x.id === movie.id
+          )
       );
-    }
 
-    renderHome();
+
+    renderHome({
+
+      trending,
+
+      popular,
+
+      topRated,
+
+      nowPlaying,
+
+      upcoming
+
+    });
+
 
   } catch (error) {
 
@@ -257,7 +367,9 @@ async function loadMovies() {
       error
     );
 
+
     $("#content").innerHTML = `
+
       <div class="empty">
 
         <h3>
@@ -269,155 +381,48 @@ async function loadMovies() {
         </p>
 
       </div>
+
     `;
+
   }
 }
 
 
-function renderHome() {
+// ===============================
+// MOVIE SECTION
+// ===============================
 
-  const trending =
-    movies.slice(0,10);
+function movieSection(
+  title,
+  list
+) {
 
-  const popular =
-    [...movies]
-    .sort(
-      (a,b) =>
-        Number(b.r) -
-        Number(a.r)
-    )
-    .slice(0,10);
+  return `
 
-  const featured =
-    movies[0];
+    <section class="section">
 
-
-  $("#content").innerHTML = `
-
-    <div
-      class="hero"
-      style="
-        background-image:
-        linear-gradient(
-          180deg,
-          transparent 25%,
-          rgba(0,0,0,.9) 100%
-        ),
-        url('${featured.backdrop || featured.img}');
-      "
-    >
-
-      <div>
-
-        <div class="meta">
-          FEATURED •
-          ${featured.release?.slice(0,4) || "2026"}
-        </div>
-
-        <h1>
-          ${featured.t}
-        </h1>
-
-        <div class="meta">
-          ${featured.g}
-          · ★ ${featured.r}
-        </div>
-
-        <p class="desc">
-          ${featured.d}
-        </p>
-
-        <div class="actions">
-
-          <button
-            class="btn primary"
-            onclick="openMovie(${featured.id})"
-          >
-            ▶ View movie
-          </button>
-
-          <button
-            class="btn secondary"
-            onclick="toggleWatch(${featured.id})"
-          >
-            ♡ My list
-          </button>
-
-        </div>
-
-      </div>
-
-    </div>
-
-
-    <section>
-
-      <div class="section-head">
+      <div class="sectiontitle">
 
         <h2>
-          Trending now
-        </h2>
-
-        <button
-          class="see"
-          onclick="page('search')"
-        >
-          See all
-        </button>
-
-      </div>
-
-      <div class="row">
-
-        ${trending.map(card).join("")}
-
-      </div>
-
-    </section>
-
-
-    <section>
-
-      <div class="section-head">
-
-        <h2>
-          Popular
+          ${title}
         </h2>
 
       </div>
 
-      <div class="row">
 
-        ${popular.map(card).join("")}
+      <div class="grid">
 
-      </div>
-
-    </section>
-
-
-    <section>
-
-      <div class="section-head">
-
-        <h2>
-          Browse genres
-        </h2>
-
-      </div>
-
-      <div class="chips">
-
-        ${genres()
-          .map(
-            g =>
-              `<button
-                class="chip"
-                onclick="genre('${g}')"
-              >
-                ${g}
-              </button>`
-          )
-          .join("")}
+        ${
+          list.length
+            ? list
+                .map(card)
+                .join("")
+            : `
+              <p>
+                No movies available.
+              </p>
+            `
+        }
 
       </div>
 
@@ -427,106 +432,158 @@ function renderHome() {
 }
 
 
-function genres() {
+// ===============================
+// HOME PAGE
+// ===============================
 
-  return [
-    ...new Set(
-      movies.map(
-        m => m.g
-      )
-    )
-  ];
+function renderHome(data) {
 
+  $("#content").innerHTML = `
+
+    ${movieSection(
+      "🔥 Trending Movies",
+      data.trending
+    )}
+
+
+    ${movieSection(
+      "⭐ Popular Movies",
+      data.popular
+    )}
+
+
+    ${movieSection(
+      "🏆 Top Rated Movies",
+      data.topRated
+    )}
+
+
+    ${movieSection(
+      "🎬 Now Playing",
+      data.nowPlaying
+    )}
+
+
+    ${movieSection(
+      "📅 Upcoming Movies",
+      data.upcoming
+    )}
+
+  `;
 }
 
+
+// ===============================
+// SEARCH PAGE
+// ===============================
 
 function renderSearch() {
 
   $("#content").innerHTML = `
 
-    <h2 style="margin-top:20px">
-      Find a movie
-    </h2>
-
     <div class="searchbox">
 
-      <span>⌕</span>
-
       <input
-        id="q"
+        id="searchInput"
+        type="text"
         placeholder="Search movies..."
         oninput="filterSearch(this.value)"
       >
 
     </div>
 
+
     <div
-      id="results"
+      id="searchResults"
       class="grid"
-    >
-
-      ${movies.map(card).join("")}
-
-    </div>
+    ></div>
 
   `;
 }
 
 
-function filterSearch(q) {
+function filterSearch(value) {
 
-  const a =
+  const q =
+    value
+      .toLowerCase()
+      .trim();
+
+
+  if (!q) {
+
+    $("#searchResults").innerHTML = "";
+
+    return;
+
+  }
+
+
+  const results =
     movies.filter(
       m =>
-        (
-          m.t +
-          " " +
-          m.g
-        )
-        .toLowerCase()
-        .includes(
-          q.toLowerCase()
-        )
+        m.t
+          .toLowerCase()
+          .includes(q)
     );
 
-  $("#results").innerHTML =
-    a.length
-      ? a.map(card).join("")
+
+  $("#searchResults").innerHTML =
+
+    results.length
+
+      ? results
+          .map(card)
+          .join("")
+
       : `
-        <div
-          class="empty"
-          style="grid-column:1/-1"
-        >
+
+        <div class="empty">
+
           No movies found.
+
         </div>
+
       `;
 }
 
 
+// ===============================
+// GENRES PAGE
+// ===============================
+
 function renderGenres() {
 
-  const gs = genres();
+  const genres =
+    [
+      ...new Set(
+        movies.map(
+          m => m.g
+        )
+      )
+    ];
+
 
   $("#content").innerHTML = `
 
-    <h2 style="margin-top:20px">
+    <h2>
       Genres
     </h2>
 
-    <div
-      class="chips"
-      style="flex-wrap:wrap"
-    >
 
-      ${gs
+    <div class="genrelist">
+
+      ${genres
         .map(
-          g =>
-            `<button
-              class="chip"
+          g => `
+
+            <button
               onclick="genre('${g}')"
             >
               ${g}
-            </button>`
+            </button>
+
+          `
         )
         .join("")}
 
@@ -534,14 +591,9 @@ function renderGenres() {
 
 
     <div
-      id="genreResults"
+      id="genreMovies"
       class="grid"
-      style="margin-top:22px"
-    >
-
-      ${movies.map(card).join("")}
-
-    </div>
+    ></div>
 
   `;
 }
@@ -549,93 +601,144 @@ function renderGenres() {
 
 function genre(g) {
 
-  page("genres");
+  const results =
+    movies.filter(
+      m => m.g === g
+    );
 
-  setTimeout(() => {
 
-    $("#genreResults").innerHTML =
-      movies
-      .filter(
-        m => m.g === g
-      )
-      .map(card)
-      .join("");
+  $("#genreMovies").innerHTML =
 
-  },0);
+    results.length
 
+      ? results
+          .map(card)
+          .join("")
+
+      : `
+
+        <div class="empty">
+
+          No movies found.
+
+        </div>
+
+      `;
 }
 
 
+// ===============================
+// WATCHLIST
+// ===============================
+
 function renderWatch() {
 
-  const a =
+  const list =
     movies.filter(
-      m => watch.includes(m.id)
+      m =>
+        watch.includes(
+          m.id
+        )
     );
+
 
   $("#content").innerHTML = `
 
-    <h2 style="margin-top:20px">
+    <h2>
       My Watchlist
     </h2>
 
+
     ${
-      a.length
+      list.length
 
-      ? `
-        <div class="grid">
-          ${a.map(card).join("")}
-        </div>
-      `
+        ? `
 
-      : `
-        <div class="empty">
+          <div class="grid">
 
-          Your watchlist is empty.
+            ${list
+              .map(card)
+              .join("")}
 
-          <br>
+          </div>
 
-          Add movies you want
-          to watch later.
+        `
 
-        </div>
-      `
+        : `
+
+          <div class="empty">
+
+            <p>
+              Your watchlist is empty.
+            </p>
+
+            <p>
+              Add movies you want
+              to watch later.
+            </p>
+
+          </div>
+
+        `
     }
 
   `;
 }
 
 
+// ===============================
+// NAVIGATION
+// ===============================
+
 function page(p) {
 
   current = p;
 
+
   document
     .querySelectorAll(".navbtn")
     .forEach(
-      x =>
+      x => {
+
         x.classList.toggle(
           "active",
           x.dataset.page === p
-        )
+        );
+
+      }
     );
 
-  const pages = {
 
-    home: renderHome,
+  if (p === "home") {
 
-    search: renderSearch,
+    loadMovies();
 
-    genres: renderGenres,
+  }
 
-    watchlist: renderWatch
+  else if (p === "search") {
 
-  };
+    renderSearch();
 
-  pages[p]();
+  }
+
+  else if (p === "genres") {
+
+    renderGenres();
+
+  }
+
+  else if (p === "watchlist") {
+
+    renderWatch();
+
+  }
 
 }
 
+
+// ===============================
+// MOVIE DETAILS
+// ===============================
 
 function openMovie(id) {
 
@@ -644,136 +747,188 @@ function openMovie(id) {
       x => x.id === id
     );
 
+
   if (!m) return;
 
-  const inW =
-    watch.includes(id);
 
-  $("#detail").innerHTML = `
+  const modal =
+    document.createElement(
+      "div"
+    );
 
-    <div class="detail">
 
-      <img
-        class="detailposter"
-        src="${m.img}"
-        alt="${m.t}"
+  modal.className =
+    "modal";
+
+
+  modal.innerHTML = `
+
+    <div class="modalbox">
+
+
+      <button
+        class="close"
+        onclick="
+          this.closest('.modal').remove()
+        "
       >
+        ×
+      </button>
 
-      <h2>
-        ${m.t}
-      </h2>
 
-      <div class="meta">
+      ${
+        m.backdrop
 
-        ${m.g}
-        ·
-        ${m.release || "2026"}
-        ·
-        ★ ${m.r}
+          ? `
+
+            <img
+              src="${m.backdrop}"
+              class="backdrop"
+              alt="${m.t}"
+            >
+
+          `
+
+          : ""
+      }
+
+
+      <div class="modalcontent">
+
+
+        <h2>
+          ${m.t}
+        </h2>
+
+
+        <p>
+
+          ⭐ ${m.r}
+
+          · ${m.g}
+
+          ${
+            m.release
+              ? `· ${m.release}`
+              : ""
+          }
+
+        </p>
+
+
+        <p>
+          ${m.d}
+        </p>
+
+
+        <button
+          onclick="
+            toggleWatch(${m.id})
+          "
+        >
+
+          ${
+            watch.includes(m.id)
+
+              ? "Remove from Watchlist"
+
+              : "Add to Watchlist"
+          }
+
+        </button>
+
 
       </div>
-
-      <p>
-        ${m.d}
-      </p>
-
-      <button
-        class="btn primary"
-        onclick="
-          toggleWatch(${m.id});
-          openMovie(${m.id})
-        "
-      >
-        ${
-          inW
-          ? "✓ In My List"
-          : "＋ Add to My List"
-        }
-      </button>
-
-      <button
-        class="btn secondary"
-        style="margin-left:7px"
-        onclick="
-          alert(
-            'Trailer feature coming next.'
-          )
-        "
-      >
-        ▶ Trailer
-      </button>
-
-      <div class="clear"></div>
-
-      <h3>
-        About this movie
-      </h3>
-
-      <p>
-        Discover cast, release information,
-        trailers and where to watch
-        in MovieHub.
-      </p>
 
     </div>
 
   `;
 
-  $("#modal")
-    .classList
-    .add("open");
-}
 
-
-function closeModal() {
-
-  $("#modal")
-    .classList
-    .remove("open");
+  document
+    .body
+    .appendChild(modal);
 
 }
 
+
+// ===============================
+// WATCHLIST BUTTON
+// ===============================
 
 function toggleWatch(id) {
 
-  watch =
+  if (
     watch.includes(id)
+  ) {
 
-      ? watch.filter(
-          x => x !== id
-        )
+    watch =
+      watch.filter(
+        x => x !== id
+      );
 
-      : [
-          ...watch,
-          id
-        ];
+  }
+
+  else {
+
+    watch.push(id);
+
+  }
+
 
   localStorage.setItem(
     "moviehub-watch",
     JSON.stringify(watch)
   );
 
+
+  document
+    .querySelector(".modal")
+    ?.remove();
+
+
   if (
     current === "watchlist"
   ) {
+
     renderWatch();
+
   }
 
 }
 
 
+// ===============================
+// NAV BUTTONS
+// ===============================
+
 document
   .querySelectorAll(".navbtn")
   .forEach(
-    b =>
-      b.onclick =
-        () => page(
+    b => {
+
+      b.onclick = () =>
+        page(
           b.dataset.page
-        )
+        );
+
+    }
   );
 
 
+// ===============================
+// START MOVIEHUB
+// ===============================
+
 loadMovies();
+  `
+
+
+
+
+
+
+
 
 </script>
 
