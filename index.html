@@ -1638,15 +1638,27 @@ function openMovie(id) {
 
       </p>
 
+<div class="detail-actions">
 
-      <div class="detail-actions">
+  <button
+    class="btn primary"
+    onclick="
+      watchTrailer(${movie.id});
+    "
+  >
 
-        <button
-          class="btn primary"
-          onclick="
-            toggleFavorite(${movie.id});
-          "
-        >
+    ▶ Watch Trailer
+
+  </button>
+
+
+  <button
+    class="btn primary"
+    onclick="
+      toggleFavorite(${movie.id});
+    "
+  >
+      
 
           ${
             isFavorite
@@ -2305,7 +2317,84 @@ document
 
   });
 
+/* =========================
+   WATCH TRAILER
+========================= */
 
+async function watchTrailer(id) {
+
+  try {
+
+    const response = await fetch(
+      API + "/movie/" + id + "/videos"
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        "Trailer request failed"
+      );
+    }
+
+    const data = await response.json();
+
+    const videos = data.results || [];
+
+    // First: official YouTube trailer
+    let trailer = videos.find(video =>
+      video.site === "YouTube" &&
+      video.type === "Trailer" &&
+      video.official === true
+    );
+
+    // Second: any YouTube trailer
+    if (!trailer) {
+      trailer = videos.find(video =>
+        video.site === "YouTube" &&
+        video.type === "Trailer"
+      );
+    }
+
+    // Third: any YouTube video
+    if (!trailer) {
+      trailer = videos.find(video =>
+        video.site === "YouTube"
+      );
+    }
+
+    if (!trailer) {
+
+      alert(
+        "Sorry, no trailer is available for this movie."
+      );
+
+      return;
+    }
+
+    const youtubeUrl =
+      "https://www.youtube.com/watch?v=" +
+      trailer.key;
+
+    window.open(
+      youtubeUrl,
+      "_blank"
+    );
+
+  }
+
+  catch (error) {
+
+    console.error(
+      "Trailer error:",
+      error
+    );
+
+    alert(
+      "Could not load the trailer. Please try again."
+    );
+
+  }
+
+}
 /* =====================================================
    CLOSE MODAL WHEN CLICKING OUTSIDE
 ===================================================== */
