@@ -2316,12 +2316,18 @@ document
     );
 
   });
-
 /* =========================
    WATCH TRAILER IN MOVIEHUB
 ========================= */
 
 async function watchTrailer(id) {
+
+  // Remove an existing trailer first
+  const oldTrailer = document.getElementById("trailerBox");
+
+  if (oldTrailer) {
+    oldTrailer.remove();
+  }
 
   try {
 
@@ -2368,29 +2374,51 @@ async function watchTrailer(id) {
       trailer.key +
       "?autoplay=1";
 
-    $("#detail").innerHTML += `
+    $("#detail").insertAdjacentHTML(
+      "beforeend",
+      `
 
       <div
+        id="trailerBox"
         style="
           margin-top:25px;
           width:100%;
-          aspect-ratio:16/9;
         "
       >
 
-        <iframe
-          width="100%"
-          height="100%"
-          src="${trailerUrl}"
-          title="Movie Trailer"
-          frameborder="0"
-          allow="autoplay; encrypted-media; picture-in-picture"
-          allowfullscreen
-        ></iframe>
+        <button
+          class="btn secondary"
+          onclick="closeTrailer()"
+          style="
+            margin-bottom:10px;
+          "
+        >
+          ✕ Close Trailer
+        </button>
+
+        <div
+          style="
+            width:100%;
+            aspect-ratio:16/9;
+          "
+        >
+
+          <iframe
+            width="100%"
+            height="100%"
+            src="${trailerUrl}"
+            title="Movie Trailer"
+            frameborder="0"
+            allow="autoplay; encrypted-media; picture-in-picture"
+            allowfullscreen
+          ></iframe>
+
+        </div>
 
       </div>
 
-    `;
+      `
+    );
 
   }
 
@@ -2407,7 +2435,24 @@ async function watchTrailer(id) {
 
   }
 
-  }    
+}
+
+
+/* =========================
+   CLOSE TRAILER
+========================= */
+
+function closeTrailer() {
+
+  const trailer =
+    document.getElementById("trailerBox");
+
+  if (trailer) {
+    trailer.remove();
+  }
+
+  }
+  
   
 /* =====================================================
    CLOSE MODAL WHEN CLICKING OUTSIDE
