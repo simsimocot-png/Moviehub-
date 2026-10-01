@@ -2386,22 +2386,34 @@ async function watchTrailer(id) {
         "
       >
 
-        <button
-          class="btn secondary"
-          onclick="closeTrailer()"
-          style="
-            margin-bottom:10px;
-          "
-        >
-          ✕ Close Trailer
-        </button>
+        
 
         <div
-          style="
-            width:100%;
-            aspect-ratio:16/9;
-          "
-        >
+  style="
+    position:relative;
+    width:100%;
+    aspect-ratio:16/9;
+  "
+>
+<button
+  onclick="closeTrailer()"
+  style="
+    position:absolute;
+    top:8px;
+    right:8px;
+    z-index:10;
+    background:rgba(0,0,0,0.75);
+    color:white;
+    border:none;
+    border-radius:50%;
+    width:32px;
+    height:32px;
+    font-size:18px;
+    cursor:pointer;
+  "
+>
+  ✕
+</button>
 
           <iframe
             width="100%"
