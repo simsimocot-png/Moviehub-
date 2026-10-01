@@ -2318,7 +2318,7 @@ document
   });
 
 /* =========================
-   WATCH TRAILER
+   WATCH TRAILER IN MOVIEHUB
 ========================= */
 
 async function watchTrailer(id) {
@@ -2330,23 +2330,19 @@ async function watchTrailer(id) {
     );
 
     if (!response.ok) {
-      throw new Error(
-        "Trailer request failed"
-      );
+      throw new Error("Trailer request failed");
     }
 
     const data = await response.json();
 
     const videos = data.results || [];
 
-    // First: official YouTube trailer
     let trailer = videos.find(video =>
       video.site === "YouTube" &&
       video.type === "Trailer" &&
       video.official === true
     );
 
-    // Second: any YouTube trailer
     if (!trailer) {
       trailer = videos.find(video =>
         video.site === "YouTube" &&
@@ -2354,7 +2350,6 @@ async function watchTrailer(id) {
       );
     }
 
-    // Third: any YouTube video
     if (!trailer) {
       trailer = videos.find(video =>
         video.site === "YouTube"
@@ -2362,22 +2357,40 @@ async function watchTrailer(id) {
     }
 
     if (!trailer) {
-
       alert(
         "Sorry, no trailer is available for this movie."
       );
-
       return;
     }
 
-    const youtubeUrl =
-      "https://www.youtube.com/watch?v=" +
-      trailer.key;
+    const trailerUrl =
+      "https://www.youtube.com/embed/" +
+      trailer.key +
+      "?autoplay=1";
 
-    window.open(
-      youtubeUrl,
-      "_blank"
-    );
+    $("#detail").innerHTML += `
+
+      <div
+        style="
+          margin-top:25px;
+          width:100%;
+          aspect-ratio:16/9;
+        "
+      >
+
+        <iframe
+          width="100%"
+          height="100%"
+          src="${trailerUrl}"
+          title="Movie Trailer"
+          frameborder="0"
+          allow="autoplay; encrypted-media; picture-in-picture"
+          allowfullscreen
+        ></iframe>
+
+      </div>
+
+    `;
 
   }
 
@@ -2394,7 +2407,8 @@ async function watchTrailer(id) {
 
   }
 
-}
+  }    
+  
 /* =====================================================
    CLOSE MODAL WHEN CLICKING OUTSIDE
 ===================================================== */
