@@ -1602,6 +1602,11 @@ async function openMovie(id) {
     );
 const detailsResponse = await fetch(API + "/movie/" + id);
 const details = await detailsResponse.json();
+  const cast = details.credits?.cast || [];
+  const castNames = cast
+  .slice(0, 5)
+  .map(actor => actor.name)
+  .join(" · ");
   const genres = details.genres
   ? details.genres.map(g => g.name).join(" · ")
   : "";
@@ -1630,6 +1635,7 @@ const details = await detailsResponse.json();
       : ""
   }
   ${genres ? " · " + genres : ""}
+  ${castNames ? `<br>🎭 ${castNames}` : ""}
 
         ${
           movie.release
