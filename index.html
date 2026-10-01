@@ -1569,7 +1569,7 @@ function renderWatchlist() {
    MOVIE DETAILS
 ===================================================== */
 
-function openMovie(id) {
+async function openMovie(id) {
 
   const movie =
     movies.find(
@@ -1600,7 +1600,8 @@ function openMovie(id) {
     watchlist.includes(
       movie.id
     );
-const details = movie.details || {};
+const detailsResponse = await fetch(API + "/movie/" + id);
+const details = await detailsResponse.json();
 
   $("#detail").innerHTML = `
 
