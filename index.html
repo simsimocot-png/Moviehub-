@@ -1600,7 +1600,7 @@ function openMovie(id) {
     watchlist.includes(
       movie.id
     );
-
+const details = movie.details || {};
 
   $("#detail").innerHTML = `
 
@@ -1619,8 +1619,12 @@ function openMovie(id) {
 
 
       <p>
-
-        ⭐ ${movie.r}
+  ⭐ ${movie.r}
+  ${
+    details.runtime
+      ? " · " + details.runtime + " min"
+      : ""
+  }
 
         ${
           movie.release
