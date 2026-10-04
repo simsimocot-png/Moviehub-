@@ -635,18 +635,24 @@ nav {
     0 15px 35px rgba(0,0,0,.45);
   }
 
-.detail h2 {
-  margin: 5px 0 8px;
+..detail h2 {
+  margin: 5px 0 10px;
 
-  font-size: 25px;
+  font-size: 27px;
+
+  line-height: 1.15;
+
+  text-align: center;
 }
 
 .detail p {
   color: #b9bbc5;
 
-  line-height: 1.55;
+  line-height: 1.6;
 
   font-size: 13px;
+
+  text-align: center;
 }
 
 .clear {
@@ -656,11 +662,23 @@ nav {
 .detail-actions {
   display: flex;
 
-  flex-wrap: wrap;
+  flex-direction: column;
 
-  gap: 8px;
+  gap: 10px;
 
-  margin-top: 15px;
+  margin-top: 20px;
+}
+
+.detail-actions .btn {
+  width: 100%;
+
+  padding: 13px 16px;
+
+  border-radius: 13px;
+
+  font-size: 14px;
+
+  font-weight: 800;
 }
 
 /* =========================
