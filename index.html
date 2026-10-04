@@ -583,8 +583,9 @@ nav {
   display: flex;
 }
 
+
 .sheet {
-.sheet {
+  position: relative;
   width: min(560px,100%);
 
   max-height: 92vh;
@@ -603,11 +604,10 @@ nav {
 }
 
 .close {
-  position: sticky;
-
-  top: 0;
-
-  float: right;
+ position: absolute;
+top: 16px;
+right: 16px;
+float: none;
 
   border: 0;
 
